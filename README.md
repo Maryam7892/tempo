@@ -223,3 +223,4 @@ npm run build:linux
 ```
 
 Produces an AppImage and `.deb` in `dist/`.
+test
