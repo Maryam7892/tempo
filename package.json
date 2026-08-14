@@ -1,0 +1,30 @@
+{
+  "name": "tempo",
+  "version": "0.1.0",
+  "description": "Tempo - momentum, not shame. A background task/sticky-note/reminder companion.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:linux": "electron-builder --linux AppImage deb"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.maha.tempo",
+    "productName": "Tempo",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "assets/icon.png"
+    }
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.5"
+  }
+}

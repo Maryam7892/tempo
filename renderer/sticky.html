@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin:0; padding:0; background:transparent; overflow:hidden; width:100%; height:100%; }
+  * { box-sizing:border-box; }
+  body{ font-family:'Segoe UI', 'Plus Jakarta Sans', sans-serif; padding-top:12px; }
+
+  #note{
+    width:100%; height:calc(100% - 12px);
+    padding:20px 16px 16px;
+    border-radius:4px;
+    box-shadow:0 12px 26px rgba(0,0,0,.4);
+    -webkit-app-region: drag;
+    position:relative;
+    color:var(--note-text, #2b2b2b);
+    display:flex;
+    flex-direction:column;
+  }
+  #note::before{
+    content:'';
+    position:absolute; top:-9px; left:50%;
+    transform:translateX(-50%) rotate(-3deg);
+    width:46px; height:16px;
+    background:rgba(255,255,255,0.55);
+    border:1px solid rgba(255,255,255,0.7);
+    -webkit-app-region: no-drag;
+  }
+  #top-row{
+    display:flex; justify-content:space-between; align-items:center;
+    -webkit-app-region: no-drag;
+    margin-bottom:8px;
+  }
+  .left-controls{ display:flex; align-items:center; gap:6px; }
+  .dots{ display:flex; gap:5px; flex-wrap:wrap; max-width:78px; }
+  .dot{
+    width:11px; height:11px; border-radius:50%;
+    border:1.5px solid rgba(127,127,127,0.35);
+    cursor:pointer;
+  }
+  .icon-btn{
+    background:rgba(127,127,127,0.16); border:none; border-radius:5px;
+    font-size:11px; cursor:pointer; padding:3px 6px;
+    color:var(--note-text, #2b2b2b);
+  }
+  .icon-btn:hover{ background:rgba(127,127,127,0.28); }
+  #close{
+    background:none; border:none; font-size:13px;
+    color:var(--note-sub, rgba(0,0,0,0.35)); cursor:pointer; padding:0;
+  }
+  #close:hover{ color:var(--note-text, rgba(0,0,0,0.7)); }
+
+  textarea, #text{
+    width:100%; flex:1; resize:none;
+    background:transparent; border:none; outline:none;
+    font-family:inherit; font-size:13px; line-height:1.4; color:var(--note-text, #2b2b2b);
+    -webkit-app-region: no-drag;
+  }
+  textarea::placeholder{ color:var(--note-sub, rgba(0,0,0,0.4)); }
+  #text{ overflow-y:auto; white-space:pre-wrap; word-wrap:break-word; min-height:0; }
+  #text:empty::before{ content:attr(data-placeholder); color:var(--note-sub, rgba(0,0,0,0.4)); pointer-events:none; }
+  #text b, #text strong{ font-weight:700; }
+  #text i, #text em{ font-style:italic; }
+
+  #format-bar{
+    display:flex; align-items:center; gap:4px; margin-top:8px; padding-top:8px;
+    border-top:1px solid var(--note-sub, rgba(0,0,0,0.15));
+    -webkit-app-region:no-drag;
+  }
+  .fmt-btn{
+    background:rgba(127,127,127,0.16); border:none; border-radius:5px;
+    font-size:12px; cursor:pointer; padding:4px 8px; min-width:22px;
+    color:var(--note-text, #2b2b2b); line-height:1;
+  }
+  .fmt-btn:hover{ background:rgba(127,127,127,0.28); }
+  .fmt-btn.active{ background:var(--note-text, #2b2b2b); color:var(--note-bg, #fff); }
+  .fmt-btn b, .fmt-btn i, .fmt-btn u, .fmt-btn s{ pointer-events:none; }
+
+  #list-body{ -webkit-app-region: no-drag; flex:1; display:flex; flex-direction:column; min-height:0; }
+  #list-items{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; margin-bottom:6px; }
+  .li-row{ display:flex; align-items:flex-start; gap:6px; font-size:12.5px; line-height:1.35; }
+  .li-check{
+    width:14px; height:14px; border-radius:4px; flex:0 0 14px; margin-top:2px;
+    border:1.5px solid var(--note-sub, rgba(0,0,0,0.4)); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .li-check.checked{ background:var(--note-text, #2b2b2b); border-color:var(--note-text, #2b2b2b); }
+  .li-check.checked::after{ content:'✓'; font-size:9px; color:var(--note-bg, #fff); }
+  .li-text{
+    flex:1; background:transparent; border:none; outline:none; font-family:inherit;
+    font-size:12.5px; color:var(--note-text, #2b2b2b); line-height:1.35;
+  }
+  .li-row.done .li-text{ text-decoration:line-through; opacity:0.6; }
+  .li-remove{ background:none; border:none; cursor:pointer; font-size:12px; color:var(--note-sub, rgba(0,0,0,0.35)); padding:0 2px; }
+  .li-remove:hover{ color:var(--note-text, #2b2b2b); }
+  #li-add{
+    display:flex; align-items:center; gap:6px;
+    border-top:1px solid var(--note-sub, rgba(0,0,0,0.15));
+    padding-top:6px;
+  }
+  #li-add input{
+    flex:1; background:transparent; border:none; outline:none;
+    font-family:inherit; font-size:12.5px; color:var(--note-text, #2b2b2b);
+  }
+  #li-add input::placeholder{ color:var(--note-sub, rgba(0,0,0,0.4)); }
+  #li-import-wrap{ position:relative; }
+  #li-import-btn{
+    background:none; border:none; cursor:pointer; font-size:13px;
+    color:var(--note-sub, rgba(0,0,0,0.5)); padding:0 2px;
+  }
+  #li-import-btn:hover{ color:var(--note-text, #2b2b2b); }
+  #li-import-menu{
+    display:none; position:absolute; bottom:22px; left:0; width:210px; max-height:160px; overflow-y:auto;
+    background:#fff; color:#2b2b2b; border-radius:8px; box-shadow:0 10px 24px rgba(0,0,0,.35);
+    z-index:10; padding:4px;
+  }
+  #li-import-menu.show{ display:block; }
+  .li-import-item{ padding:6px 8px; font-size:12px; border-radius:5px; cursor:pointer; }
+  .li-import-item:hover{ background:#f0f0f0; }
+  .li-import-empty{ padding:8px; font-size:11.5px; color:#999; }
+</style>
+</head>
+<body>
+  <div id="note">
+    <div id="top-row">
+      <div class="left-controls">
+        <button id="close" title="Hide note (find it again in Sticky notes on the dashboard)">✕</button>
+        <button id="mode-toggle" class="icon-btn" title="Switch between note and checklist"></button>
+      </div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <div id="text" contenteditable="true" data-placeholder="pressure goes here…"></div>
+    <div id="format-bar">
+      <button class="fmt-btn" id="fmt-bold" title="Bold"><b>B</b></button>
+      <button class="fmt-btn" id="fmt-italic" title="Italic"><i>I</i></button>
+      <button class="fmt-btn" id="fmt-underline" title="Underline"><u>U</u></button>
+      <button class="fmt-btn" id="fmt-strike" title="Strikethrough"><s>S</s></button>
+    </div>
+
+    <div id="list-body" style="display:none;">
+      <div id="list-items"></div>
+      <div id="li-add">
+        <span style="font-size:12px; opacity:0.6;">+</span>
+        <input id="li-input" placeholder="add item, press Enter" />
+        <div id="li-import-wrap">
+          <button id="li-import-btn" title="Add from your task board">📋</button>
+          <div id="li-import-menu"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const NOTE_STYLES = {
+    'note-yellow':   { bg:'#FFE47A', text:'#2b2b2b', sub:'rgba(0,0,0,0.5)' },
+    'note-pink':     { bg:'#FFADC8', text:'#2b2b2b', sub:'rgba(0,0,0,0.5)' },
+    'note-blue':     { bg:'#9FD8FF', text:'#2b2b2b', sub:'rgba(0,0,0,0.5)' },
+    'note-green':    { bg:'#B9F3C0', text:'#2b2b2b', sub:'rgba(0,0,0,0.5)' },
+    'note-lavender': { bg:'#D9C2FF', text:'#2b2b2b', sub:'rgba(0,0,0,0.5)' },
+    'note-dark':     { bg:'#20202B', text:'#F1EFE9', sub:'rgba(255,255,255,0.45)' },
+    'note-plum':     { bg:'#2A1F33', text:'#F3E9F6', sub:'rgba(255,255,255,0.45)' }
+  };
+  const COLOR_ORDER = Object.keys(NOTE_STYLES);
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  const noteEl = document.getElementById('note');
+  const textEl = document.getElementById('text');
+  const dotsEl = document.getElementById('dots');
+  const modeBtn = document.getElementById('mode-toggle');
+  const listBody = document.getElementById('list-body');
+  const listItemsEl = document.getElementById('list-items');
+  const liInput = document.getElementById('li-input');
+
+  let state = { color:'note-yellow', type:'text', text:'', items:[] };
+
+  function applyStyle(){
+    const s = NOTE_STYLES[state.color] || NOTE_STYLES['note-yellow'];
+    noteEl.style.background = s.bg;
+    noteEl.style.setProperty('--note-text', s.text);
+    noteEl.style.setProperty('--note-sub', s.sub);
+    noteEl.style.setProperty('--note-bg', s.bg);
+  }
+
+  function applyMode(){
+    const isList = state.type === 'list';
+    textEl.style.display = isList ? 'none' : 'block';
+    document.getElementById('format-bar').style.display = isList ? 'none' : 'flex';
+    listBody.style.display = isList ? 'flex' : 'none';
+    modeBtn.textContent = isList ? '✎ note' : '☑ list';
+    if(isList) renderListItems();
+  }
+
+  function renderListItems(){
+    listItemsEl.innerHTML = '';
+    state.items.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'li-row' + (item.done ? ' done' : '');
+      const cb = document.createElement('div');
+      cb.className = 'li-check' + (item.done ? ' checked' : '');
+      cb.addEventListener('click', () => {
+        item.done = !item.done;
+        row.classList.toggle('done', item.done);
+        cb.classList.toggle('checked', item.done);
+        persist();
+      });
+      const txt = document.createElement('input');
+      txt.className = 'li-text';
+      txt.value = item.text;
+      txt.addEventListener('input', e => { item.text = e.target.value; });
+      txt.addEventListener('blur', persist);
+      const rm = document.createElement('button');
+      rm.className = 'li-remove'; rm.textContent = '×';
+      rm.addEventListener('click', () => {
+        state.items.splice(i, 1);
+        renderListItems();
+        persist();
+      });
+      row.appendChild(cb); row.appendChild(txt); row.appendChild(rm);
+      listItemsEl.appendChild(row);
+    });
+  }
+
+  liInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && liInput.value.trim()){
+      state.items.push({ text: liInput.value.trim(), done:false });
+      liInput.value = '';
+      renderListItems();
+      persist();
+    }
+  });
+
+  const importBtn = document.getElementById('li-import-btn');
+  const importMenu = document.getElementById('li-import-menu');
+  importBtn.addEventListener('click', async () => {
+    if(importMenu.classList.contains('show')){ importMenu.classList.remove('show'); return; }
+    const tasks = (await window.tempoSticky.getStore('tasks')) || [];
+    const open = tasks.filter(t => !t.done);
+    importMenu.innerHTML = '';
+    if(open.length === 0){
+      importMenu.innerHTML = '<div class="li-import-empty">No open tasks on your board.</div>';
+    } else {
+      open.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'li-import-item';
+        row.textContent = t.title;
+        row.addEventListener('click', () => {
+          state.items.push({ text: t.title, done:false });
+          renderListItems();
+          persist();
+          importMenu.classList.remove('show');
+        });
+        importMenu.appendChild(row);
+      });
+    }
+    importMenu.classList.add('show');
+  });
+  document.addEventListener('click', (e) => {
+    if(!document.getElementById('li-import-wrap').contains(e.target)) importMenu.classList.remove('show');
+  });
+
+  modeBtn.addEventListener('click', () => {
+    if(state.type === 'text'){
+      if(state.items.length === 0 && textEl.innerText.trim()){
+        state.items = textEl.innerText.split('\n').map(l=>l.trim()).filter(Boolean).map(t=>({text:t, done:false}));
+      }
+      state.type = 'list';
+    } else {
+      if(!textEl.innerText.trim() && state.items.length){
+        textEl.innerText = state.items.map(i=>i.text).join('\n');
+        state.text = textEl.innerHTML;
+      }
+      state.type = 'text';
+    }
+    applyMode();
+    persist();
+  });
+
+  function persist(){
+    window.tempoSticky.updateSticky(id, { color: state.color, type: state.type, text: state.text, items: state.items });
+  }
+
+  async function init(){
+    const stickies = (await window.tempoSticky.getStore('stickies')) || [];
+    const s = stickies.find(x => x.id === id);
+    if(s){
+      state.color = s.color || 'note-yellow';
+      state.type = s.type || 'text';
+      state.text = s.text || '';
+      state.items = Array.isArray(s.items) ? s.items : [];
+    }
+    // Notes saved before rich-text formatting was added stored plain text.
+    // Only trust it as HTML if it actually looks like markup we'd have written;
+    // otherwise set it as plain text so old notes render (and don't break on
+    // stray "<" characters) instead of being misread as tags.
+    if(/<[a-z][\s\S]*>/i.test(state.text)){
+      textEl.innerHTML = state.text;
+    } else {
+      textEl.innerText = state.text;
+    }
+    applyStyle();
+    applyMode();
+
+    COLOR_ORDER.forEach(color => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.background = NOTE_STYLES[color].bg;
+      dot.title = color.replace('note-','');
+      dot.addEventListener('click', () => {
+        state.color = color;
+        applyStyle();
+        persist();
+      });
+      dotsEl.appendChild(dot);
+    });
+  }
+  init();
+
+  let saveTimer = null;
+  textEl.addEventListener('input', () => {
+    state.text = textEl.innerHTML;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persist, 400);
+  });
+
+  function runFormat(cmd){
+    document.execCommand(cmd);
+    textEl.focus();
+    state.text = textEl.innerHTML;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persist, 400);
+  }
+  document.getElementById('fmt-bold').addEventListener('click', () => runFormat('bold'));
+  document.getElementById('fmt-italic').addEventListener('click', () => runFormat('italic'));
+  document.getElementById('fmt-underline').addEventListener('click', () => runFormat('underline'));
+  document.getElementById('fmt-strike').addEventListener('click', () => runFormat('strikeThrough'));
+
+  document.getElementById('close').addEventListener('click', () => {
+    window.tempoSticky.hideSticky(id);
+  });
+</script>
+</body>
+</html>
